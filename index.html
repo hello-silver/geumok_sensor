@@ -106,7 +106,7 @@
 <main class="wrap">
   <section>
     <h2>보유 센서 목록</h2>
-    <p class="lead">센서 품명, 제조사, 보관 장소를 확인하고 수량을 수정할 수 있습니다.</p>
+    <p class="lead">센서 품명, 제조사, 보관 장소를 확인하고 수량과 위치를 수정할 수 있습니다.</p>
     
     <div class="controls">
       <input id="search" type="search" placeholder="센서 이름 또는 회사명 검색...">
@@ -166,6 +166,7 @@
   </section>
 </main>
 
+<!-- 수량 및 보관 위치 수정 모달 -->
 <dialog id="editModal">
   <div class="dhead">
     <h3 style="margin:0;color:#047857">센서 정보 수정</h3>
@@ -195,13 +196,4 @@
 </footer>
 
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-  import { getFirestore, collection, getDocs, addDoc, updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyDS_JlZsCakqQfMuONN7KLzk2SseG06t6c",
-    authDomain: "science-sensor-app.firebaseapp.com",
-    projectId: "science-sensor-app",
-    storageBucket: "science-sensor-app.firebasestorage.app",
-    messagingSenderId: "1044794883171",
-    appId: "1:1044794883171:web:d8774d5b7895
+  import { initializeApp } from "
