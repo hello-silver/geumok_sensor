@@ -393,7 +393,7 @@
         const sensorRef = doc(db, "sensors", currentEditDocId);
         await updateDoc(sensorRef, { qty: newQty, place: newPlace });
       }
-      $('#editModal'].close();
+      $('#editModal').close();
       await loadSensors();
       alert('수량과 보관 위치가 수정되었습니다!');
     } catch (error) {
