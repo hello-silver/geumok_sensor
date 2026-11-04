@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>교내 센서 재고 관리</title>
+<title>교내 센서 재고 및 대여 관리 시스템</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
 <style>
   :root{
@@ -11,13 +11,14 @@
     --accent:#059669; --accent-soft:#d1fae5;
     --pasco:#2563eb; --science:#ea580c; --pocket:#7c3aed; --other:#64748b;
     --danger:#dc2626; --danger-soft:#fee2e2;
+    --borrowed-bg:#fef3c7; --borrowed-txt:#d97706;
   }
   *{box-sizing:border-box}
   body{margin:0;font-family:Pretendard,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;color:var(--ink);background:var(--bg);line-height:1.6}
   a{color:inherit; text-decoration: none;}
   
   header{background:linear-gradient(135deg,#059669,#10b981);color:#fff;padding:40px 20px 32px}
-  .wrap{max-width:1000px;margin:0 auto;padding:0 20px}
+  .wrap{max-width:1050px;margin:0 auto;padding:0 20px}
   header h1{margin:0 0 6px;font-size:clamp(24px,4vw,34px);letter-spacing:-0.5px}
   header p{margin:0;opacity:.95;font-size:15px}
   
@@ -44,7 +45,7 @@
   .controls input{flex:1;min-width:200px}
   
   .table-container{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow: 0 4px 12px rgba(5,150,105,0.06);overflow-x:auto}
-  table{width:100%;border-collapse:collapse;text-align:left;font-size:15px;min-width:650px}
+  table{width:100%;border-collapse:collapse;text-align:left;font-size:15px;min-width:700px}
   th{background:#ecfdf5;color:#047857;padding:14px 18px;font-weight:700;border-bottom:1px solid var(--line);white-space:nowrap}
   td{padding:14px 18px;border-bottom:1px solid #f1f5f9;color:var(--ink);vertical-align:middle}
   tr:last-child td{border-bottom:none}
@@ -55,6 +56,10 @@
   .badge-사이언스큐브{background:var(--science)}
   .badge-포켓랩{background:var(--pocket)}
   .badge-기타{background:var(--other)}
+
+  .status-badge{display:inline-block; padding:4px 10px; border-radius:6px; font-size:13px; font-weight:700;}
+  .status-in{background:#ecfdf5; color:#047857;}
+  .status-out{background:var(--borrowed-bg); color:var(--borrowed-txt);}
 
   .row-edit-btn{background:var(--accent-soft); border:1px solid var(--accent); color:var(--accent); padding:6px 12px; border-radius:8px; font-weight:700; font-size:13px; cursor:pointer; display:inline-flex; align-items:center; gap:4px; transition:0.2s;}
   .row-edit-btn:hover{background:var(--accent); color:#fff;}
@@ -87,8 +92,8 @@
 
 <header>
   <div class="wrap">
-    <h1>📋 교내 센서 재고 관리 시스템</h1>
-    <p>우리 학교 과학실 디지털 센서 및 탐구 장비 현황을 실시간으로 관리하세요.</p>
+    <h1>📋 교내 센서 재고 및 대여 관리 시스템</h1>
+    <p>우리 학교 과학실 장비 현황과 대여 상태를 실시간으로 확인하고 관리하세요.</p>
     <div class="stats">
       <div class="stat"><b id="statKinds">-</b>센서 종류</div>
       <div class="stat"><b id="statTotal">-</b>총 보유 수량</div>
@@ -107,11 +112,11 @@
 
 <main class="wrap">
   <section>
-    <h2>보유 센서 목록</h2>
-    <p class="lead">센서 품명, 제조사, 보관 장소를 확인하고 수량과 위치를 수정하거나 삭제할 수 있습니다.</p>
+    <h2>보유 센서 재고 및 대여 목록</h2>
+    <p class="lead">수량, 보관 위치뿐만 아니라 현재 대여 중인 사용자(비고)를 관리할 수 있습니다.</p>
     
     <div class="controls">
-      <input id="search" type="search" placeholder="센서 이름 또는 회사명 검색...">
+      <input id="search" type="search" placeholder="센서 이름, 회사명 또는 대여자 검색...">
       <select id="placeFilter">
         <option value="">보관장소 전체</option>
         <option>생물실</option>
@@ -137,15 +142,17 @@
             <th>회사명</th>
             <th>수량</th>
             <th>보관 위치</th>
+            <th>대여 상태 (비고)</th>
             <th style="text-align:right;">관리</th>
           </tr>
         </thead>
         <tbody id="sensorTableBody">
-          <tr><td colspan="5" style="text-align:center;padding:30px;color:var(--sub)">데이터를 불러오는 중입니다...</td></tr>
+          <tr><td colspan="6" style="text-align:center;padding:30px;color:var(--sub)">데이터를 불러오는 중입니다...</td></tr>
         </tbody>
       </table>
     </div>
 
+    <!-- 새로운 기기 추가 카드 -->
     <div class="add-card">
       <h3>➕ 새로운 기기 추가하기</h3>
       <div class="form-grid">
@@ -169,10 +176,10 @@
   </section>
 </main>
 
-<!-- 수량, 보관 위치 수정 및 삭제 모달 -->
+<!-- 수정 모달 -->
 <dialog id="editModal">
   <div class="dhead">
-    <h3 style="margin:0;color:#047857">센서 정보 수정 및 관리</h3>
+    <h3 style="margin:0;color:#047857">센서 정보 및 대여 관리</h3>
   </div>
   <div class="dbody">
     <label id="editSensorName" style="margin-bottom:12px;display:block;font-size:15px;color:var(--ink)"></label>
@@ -187,9 +194,12 @@
       <option value="화학실">화학실</option>
       <option value="준비실">준비실</option>
     </select>
+
+    <label for="editBorrowerInput">대여 상태 (비고 / 대여자 이름)</label>
+    <input type="text" id="editBorrowerInput" placeholder="예: 김철수 선생님 (미대여 시 비워두세요)">
   </div>
   <div class="dfoot">
-    <button class="btn danger" id="deleteSensorBtn" style="margin-top:0;">🗑️ 기기 삭제</button>
+    <button class="btn danger" id="deleteSensorBtn" style="margin-top:0;">🗑️ 삭제</button>
     <div style="display:flex; gap:8px;">
       <button class="btn ghost" id="closeModalBtn" style="margin-top:0;">취소</button>
       <button class="btn" id="saveEditBtn" style="margin-top:0;">저장하기</button>
@@ -223,26 +233,26 @@
   const $ = s => document.querySelector(s);
 
   const fallbackData = [
-    {name: "무선 온도 센서", company: "PASCO", qty: 14, place: "생물실"},
-    {name: "무선 온도 센서", company: "사이언스큐브", qty: 7, place: "생물실"},
-    {name: "무선 이산화탄소 센서", company: "PASCO", qty: 14, place: "생물실"},
-    {name: "무선 산소 센서", company: "PASCO", qty: 1, place: "생물실"},
-    {name: "무선 압력 센서", company: "PASCO", qty: 12, place: "물리지학실"},
-    {name: "무선 압력 센서", company: "사이언스큐브", qty: 10, place: "물리지학실"},
-    {name: "무선 pH 센서", company: "PASCO", qty: 2, place: "생물실"},
-    {name: "무선 pH 센서", company: "사이언스큐브", qty: 8, place: "생물실"},
-    {name: "에어 (대기질 측정)", company: "포켓랩", qty: 2, place: "생물실"},
-    {name: "날씨 센서", company: "PASCO", qty: 2, place: "물리지학실"},
-    {name: "무선 조도 센서", company: "PASCO", qty: 1, place: "생물실"},
-    {name: "무선 스펙트로미터", company: "PASCO", qty: 4, place: "생물실"},
-    {name: "UV 분광광도계 세트", company: "PASCO", qty: 1, place: "생물실"},
-    {name: "무선 운동가속도 센서", company: "-", qty: 2, place: "물리지학실"},
-    {name: "힘/가속도 측정 센서", company: "사이언스큐브", qty: 1, place: "물리지학실"},
-    {name: "보이저 (다중 측정)", company: "포켓랩", qty: 2, place: "생물실"},
-    {name: "역학실험장치", company: "사이언스큐브", qty: 2, place: "준비실"},
-    {name: "소리 센서", company: "PASCO", qty: 2, place: "물리지학실"},
-    {name: "전압·전류 센서", company: "PASCO", qty: 2, place: "물리지학실"},
-    {name: "전기영동장치", company: "-", qty: 5, place: "생물실"}
+    {name: "무선 온도 센서", company: "PASCO", qty: 14, place: "생물실", borrower: ""},
+    {name: "무선 온도 센서", company: "사이언스큐브", qty: 7, place: "생물실", borrower: ""},
+    {name: "무선 이산화탄소 센서", company: "PASCO", qty: 14, place: "생물실", borrower: ""},
+    {name: "무선 산소 센서", company: "PASCO", qty: 1, place: "생물실", borrower: ""},
+    {name: "무선 압력 센서", company: "PASCO", qty: 12, place: "물리지학실", borrower: ""},
+    {name: "무선 압력 센서", company: "사이언스큐브", qty: 10, place: "물리지학실", borrower: ""},
+    {name: "무선 pH 센서", company: "PASCO", qty: 2, place: "생물실", borrower: ""},
+    {name: "무선 pH 센서", company: "사이언스큐브", qty: 8, place: "생물실", borrower: ""},
+    {name: "에어 (대기질 측정)", company: "포켓랩", qty: 2, place: "생물실", borrower: ""},
+    {name: "날씨 센서", company: "PASCO", qty: 2, place: "물리지학실", borrower: ""},
+    {name: "무선 조도 센서", company: "PASCO", qty: 1, place: "생물실", borrower: ""},
+    {name: "무선 스펙트로미터", company: "PASCO", qty: 4, place: "생물실", borrower: ""},
+    {name: "UV 분광광도계 세트", company: "PASCO", qty: 1, place: "생물실", borrower: ""},
+    {name: "무선 운동가속도 센서", company: "-", qty: 2, place: "물리지학실", borrower: ""},
+    {name: "힘/가속도 측정 센서", company: "사이언스큐브", qty: 1, place: "물리지학실", borrower: ""},
+    {name: "보이저 (다중 측정)", company: "포켓랩", qty: 2, place: "생물실", borrower: ""},
+    {name: "역학실험장치", company: "사이언스큐브", qty: 2, place: "준비실", borrower: ""},
+    {name: "소리 센서", company: "PASCO", qty: 2, place: "물리지학실", borrower: ""},
+    {name: "전압·전류 센서", company: "PASCO", qty: 2, place: "물리지학실", borrower: ""},
+    {name: "전기영동장치", company: "-", qty: 5, place: "생물실", borrower: ""}
   ];
 
   async function loadSensors() {
@@ -291,7 +301,7 @@
     const placeFilter = $('#placeFilter').value;
 
     const filtered = sensors.filter(s => {
-      const matchSearch = ((s.name || '') + (s.company || '') + (s.place || '')).toLowerCase().includes(searchStr);
+      const matchSearch = ((s.name || '') + (s.company || '') + (s.place || '') + (s.borrower || '')).toLowerCase().includes(searchStr);
       const matchPlace = !placeFilter || s.place === placeFilter;
       const matchCompany = !selectedCompanyFilter || s.company === selectedCompanyFilter;
       return matchSearch && matchPlace && matchCompany;
@@ -313,18 +323,24 @@
       else if(s.company === '사이언스큐브') badgeClass = 'badge-사이언스큐브';
       else if(s.company === '포켓랩') badgeClass = 'badge-포켓랩';
 
+      const hasBorrower = s.borrower && s.borrower.trim() !== "";
+      const statusHtml = hasBorrower 
+        ? `<span class="status-badge status-out">🏃 대여중: ${s.borrower}</span>` 
+        : `<span class="status-badge status-in">📦 보관중</span>`;
+
       return `
         <tr>
           <td><strong>${s.name || '이름 없음'}</strong></td>
           <td>${s.company === '-' || !s.company ? '-' : `<span class="company-badge ${badgeClass}">${s.company}</span>`}</td>
           <td><strong>${s.qty ?? 0}대</strong></td>
           <td>📍 ${s.place || '미지정'}</td>
+          <td>${statusHtml}</td>
           <td style="text-align:right;">
             <button class="row-edit-btn edit-trigger" data-id="${s.id}">✏️ 수정</button>
           </td>
         </tr>
       `;
-    }).join('') : `<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--sub)">검색 결과가 없습니다.</td></tr>`;
+    }).join('') : `<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--sub)">검색 결과가 없습니다.</td></tr>`;
 
     $('#statKinds').textContent = sensors.length + '종';
     $('#statTotal').textContent = sensors.reduce((acc, cur) => acc + Number(cur.qty || 0), 0) + '대';
@@ -339,6 +355,7 @@
       $('#editSensorName').textContent = `📌 ${s.name} (${s.company})`;
       $('#editQtyInput').value = s.qty;
       $('#editPlaceSelect').value = s.place || '생물실';
+      $('#editBorrowerInput').value = s.borrower || '';
       $('#editModal').showModal();
     }
   });
@@ -380,13 +397,12 @@
     }
 
     try {
-      await addDoc(collection(db, "sensors"), {name, company, qty, place});
+      await addDoc(collection(db, "sensors"), {name, company, qty, place, borrower: ""});
       $('#newName').value = '';
       $('#newQty').value = '1';
       await loadSensors();
       alert('기기가 성공적으로 등록되었습니다!');
     } catch (error) {
-      console.error("기기 등록 실패:", error);
       alert("기기 등록 중 오류가 발생했습니다.");
     }
   });
@@ -395,10 +411,10 @@
     $('#editModal').close();
   });
 
-  // 수정 내용 저장
   $('#saveEditBtn').addEventListener('click', async () => {
     const newQty = parseInt($('#editQtyInput').value);
     const newPlace = $('#editPlaceSelect').value;
+    const newBorrower = $('#editBorrowerInput').value.trim();
 
     if(isNaN(newQty) || newQty < 0){
       alert('올바른 수량을 입력해주세요.');
@@ -407,18 +423,16 @@
     try {
       if(!currentEditDocId.toString().startsWith('local_')) {
         const sensorRef = doc(db, "sensors", currentEditDocId);
-        await updateDoc(sensorRef, { qty: newQty, place: newPlace });
+        await updateDoc(sensorRef, { qty: newQty, place: newPlace, borrower: newBorrower });
       }
       $('#editModal').close();
       await loadSensors();
-      alert('수량과 보관 위치가 수정되었습니다!');
+      alert('수량, 보관 위치, 대여 상태가 수정되었습니다!');
     } catch (error) {
-      console.error("정보 수정 실패:", error);
       alert("정보 수정 중 오류가 발생했습니다.");
     }
   });
 
-  // 기기 삭제 버튼 처리
   $('#deleteSensorBtn').addEventListener('click', async () => {
     if(!confirm('정말 이 기기를 목록에서 삭제하시겠습니까?')) return;
 
@@ -430,7 +444,6 @@
       await loadSensors();
       alert('기기가 성공적으로 삭제되었습니다.');
     } catch (error) {
-      console.error("기기 삭제 실패:", error);
       alert("기기 삭제 중 오류가 발생했습니다.");
     }
   });
