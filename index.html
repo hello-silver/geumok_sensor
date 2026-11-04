@@ -10,6 +10,7 @@
     --ink:#2d3748; --sub:#718096; --line:#a7f3d0; --bg:#f0fdf4; --card:#ffffff;
     --accent:#059669; --accent-soft:#d1fae5;
     --pasco:#2563eb; --science:#ea580c; --pocket:#7c3aed; --other:#64748b;
+    --danger:#dc2626; --danger-soft:#fee2e2;
   }
   *{box-sizing:border-box}
   body{margin:0;font-family:Pretendard,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;color:var(--ink);background:var(--bg);line-height:1.6}
@@ -68,6 +69,8 @@
   .btn:hover{background:#047857;transform:translateY(-2px)}
   .btn.ghost{background:#fff;color:var(--accent);border:1px solid var(--accent);box-shadow:none}
   .btn.ghost:hover{background:var(--accent-soft)}
+  .btn.danger{background:var(--danger); box-shadow:0 4px 6px rgba(220,38,38,0.2)}
+  .btn.danger:hover{background:#b91c1c}
 
   dialog{border:none;border-radius:20px;padding:0;max-width:400px;width:calc(100% - 24px);box-shadow:0 25px 50px -12px rgba(0,0,0,0.25)}
   dialog::backdrop{background:rgba(5,150,105,0.4);backdrop-filter:blur(4px)}
@@ -75,7 +78,7 @@
   .dbody{padding:24px;background:#fff}
   .dbody label{display:block;font-weight:700;font-size:14px;margin-bottom:8px;color:#047857}
   .dbody input, .dbody select{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;font:inherit;margin-bottom:16px}
-  .dfoot{padding:12px 24px;background:#f8fafc;display:flex;justify-content:flex-end;gap:8px}
+  .dfoot{padding:12px 24px;background:#f8fafc;display:flex;justify-content:space-between;align-items:center;gap:8px}
 
   footer{text-align:center;color:var(--sub);font-size:13px;padding:30px 20px 50px}
 </style>
@@ -105,7 +108,7 @@
 <main class="wrap">
   <section>
     <h2>보유 센서 목록</h2>
-    <p class="lead">센서 품명, 제조사, 보관 장소를 확인하고 수량과 위치를 수정할 수 있습니다.</p>
+    <p class="lead">센서 품명, 제조사, 보관 장소를 확인하고 수량과 위치를 수정하거나 삭제할 수 있습니다.</p>
     
     <div class="controls">
       <input id="search" type="search" placeholder="센서 이름 또는 회사명 검색...">
@@ -166,10 +169,10 @@
   </section>
 </main>
 
-<!-- 수량 및 보관 위치 수정 모달 -->
+<!-- 수량, 보관 위치 수정 및 삭제 모달 -->
 <dialog id="editModal">
   <div class="dhead">
-    <h3 style="margin:0;color:#047857">센서 정보 수정 (수량 및 위치)</h3>
+    <h3 style="margin:0;color:#047857">센서 정보 수정 및 관리</h3>
   </div>
   <div class="dbody">
     <label id="editSensorName" style="margin-bottom:12px;display:block;font-size:15px;color:var(--ink)"></label>
@@ -186,8 +189,11 @@
     </select>
   </div>
   <div class="dfoot">
-    <button class="btn ghost" id="closeModalBtn">취소</button>
-    <button class="btn" id="saveEditBtn">저장하기</button>
+    <button class="btn danger" id="deleteSensorBtn" style="margin-top:0;">🗑️ 기기 삭제</button>
+    <div style="display:flex; gap:8px;">
+      <button class="btn ghost" id="closeModalBtn" style="margin-top:0;">취소</button>
+      <button class="btn" id="saveEditBtn" style="margin-top:0;">저장하기</button>
+    </div>
   </div>
 </dialog>
 
@@ -197,7 +203,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-  import { getFirestore, collection, getDocs, addDoc, updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+  import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyDS_JlZsCakqQfMuONN7KLzk2SseG06t6c",
@@ -225,196 +231,4 @@
     {name: "무선 압력 센서", company: "사이언스큐브", qty: 10, place: "물리지학실"},
     {name: "무선 pH 센서", company: "PASCO", qty: 2, place: "생물실"},
     {name: "무선 pH 센서", company: "사이언스큐브", qty: 8, place: "생물실"},
-    {name: "에어 (대기질 측정)", company: "포켓랩", qty: 2, place: "생물실"},
-    {name: "날씨 센서", company: "PASCO", qty: 2, place: "물리지학실"},
-    {name: "무선 조도 센서", company: "PASCO", qty: 1, place: "생물실"},
-    {name: "무선 스펙트로미터", company: "PASCO", qty: 4, place: "생물실"},
-    {name: "UV 분광광도계 세트", company: "PASCO", qty: 1, place: "생물실"},
-    {name: "무선 운동가속도 센서", company: "-", qty: 2, place: "물리지학실"},
-    {name: "힘/가속도 측정 센서", company: "사이언스큐브", qty: 1, place: "물리지학실"},
-    {name: "보이저 (다중 측정)", company: "포켓랩", qty: 2, place: "생물실"},
-    {name: "역학실험장치", company: "사이언스큐브", qty: 2, place: "준비실"},
-    {name: "소리 센서", company: "PASCO", qty: 2, place: "물리지학실"},
-    {name: "전압·전류 센서", company: "PASCO", qty: 2, place: "물리지학실"},
-    {name: "전기영동장치", company: "-", qty: 5, place: "생물실"}
-  ];
-
-  async function loadSensors() {
-    try {
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error("Timeout")), 2500)
-      );
-      
-      const fetchPromise = getDocs(collection(db, "sensors"));
-      const querySnapshot = await Promise.race([fetchPromise, timeoutPromise]);
-
-      sensors = [];
-      querySnapshot.forEach((docSnap) => {
-        sensors.push({ id: docSnap.id, ...docSnap.data() });
-      });
-
-      if(sensors.length === 0) {
-        for(let item of fallbackData) {
-          await addDoc(collection(db, "sensors"), item);
-        }
-        return loadSensors();
-      }
-      renderTable();
-    } catch (error) {
-      console.warn("파이어베이스 연결 지연:", error);
-      loadSensorsFromLocal();
-    }
-  }
-
-  async function loadSensorsFromLocal() {
-    try {
-      const querySnapshot = await getDocs(collection(db, "sensors"));
-      sensors = [];
-      querySnapshot.forEach((docSnap) => {
-        sensors.push({ id: docSnap.id, ...docSnap.data() });
-      });
-      renderTable();
-    } catch(e) {
-      sensors = fallbackData.map((item, idx) => ({ id: 'local_' + idx, ...item }));
-      renderTable();
-    }
-  }
-
-  function renderTable(){
-    const searchStr = $('#search').value.trim().toLowerCase();
-    const placeFilter = $('#placeFilter').value;
-
-    const filtered = sensors.filter(s => {
-      const matchSearch = ((s.name || '') + (s.company || '') + (s.place || '')).toLowerCase().includes(searchStr);
-      const matchPlace = !placeFilter || s.place === placeFilter;
-      const matchCompany = !selectedCompanyFilter || s.company === selectedCompanyFilter;
-      return matchSearch && matchPlace && matchCompany;
-    });
-
-    // 🌟 센서 이름(name)을 기준으로 가나다순(오름차순) 정렬 추가
-    filtered.sort((a, b) => {
-      const nameA = (a.name || '').toLowerCase();
-      const nameB = (b.name || '').toLowerCase();
-      if (nameA < nameB) return -1;
-      if (nameA > nameB) return 1;
-      return 0;
-    });
-
-    const tbody = $('#sensorTableBody');
-    tbody.innerHTML = filtered.length ? filtered.map((s) => {
-      let badgeClass = 'badge-기타';
-      if(s.company === 'PASCO') badgeClass = 'badge-PASCO';
-      else if(s.company === '사이언스큐브') badgeClass = 'badge-사이언스큐브';
-      else if(s.company === '포켓랩') badgeClass = 'badge-포켓랩';
-
-      return `
-        <tr>
-          <td><strong>${s.name || '이름 없음'}</strong></td>
-          <td>${s.company === '-' || !s.company ? '-' : `<span class="company-badge ${badgeClass}">${s.company}</span>`}</td>
-          <td><strong>${s.qty ?? 0}대</strong></td>
-          <td>📍 ${s.place || '미지정'}</td>
-          <td style="text-align:right;">
-            <button class="row-edit-btn edit-trigger" data-id="${s.id}">✏️ 수정</button>
-          </td>
-        </tr>
-      `;
-    }).join('') : `<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--sub)">검색 결과가 없습니다.</td></tr>`;
-
-    $('#statKinds').textContent = sensors.length + '종';
-    $('#statTotal').textContent = sensors.reduce((acc, cur) => acc + Number(cur.qty || 0), 0) + '대';
-  }
-
-  document.addEventListener('click', (e) => {
-    if (e.target.closest('.edit-trigger')) {
-      const id = e.target.closest('.edit-trigger').dataset.id;
-      currentEditDocId = id;
-      const s = sensors.find(item => item.id === id);
-      if(!s) return;
-      $('#editSensorName').textContent = `📌 ${s.name} (${s.company})`;
-      $('#editQtyInput').value = s.qty;
-      $('#editPlaceSelect').value = s.place || '생물실';
-      $('#editModal').showModal();
-    }
-  });
-
-  document.querySelectorAll('.toggle-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      document.querySelectorAll('.toggle-btn').forEach(b => {
-        b.style.background = '#fff';
-        if(b.dataset.company === '') b.style.color = '#16a34a';
-        else if(b.dataset.company === 'PASCO') b.style.color = '#2563eb';
-        else if(b.dataset.company === '사이언스큐브') b.style.color = '#ea580c';
-        else if(b.dataset.company === '포켓랩') b.style.color = '#7c3aed';
-        else b.style.color = '#64748b';
-      });
-
-      selectedCompanyFilter = e.target.dataset.company;
-      e.target.style.background = e.target.dataset.company === '' ? '#16a34a' : 
-                                  e.target.dataset.company === 'PASCO' ? '#2563eb' :
-                                  e.target.dataset.company === '사이언스큐브' ? '#ea580c' :
-                                  e.target.dataset.company === '포켓랩' ? '#7c3aed' : '#64748b';
-      e.target.style.color = '#fff';
-      renderTable();
-    });
-  });
-
-  $('#addBtn').addEventListener('click', async () => {
-    const name = $('#newName').value.trim();
-    const company = $('#newCompany').value;
-    const qty = parseInt($('#newQty').value);
-    const place = $('#newPlace').value;
-
-    if(!name){
-      alert('센서 이름을 입력해주세요.');
-      return;
-    }
-    if(isNaN(qty) || qty < 1){
-      alert('유효한 수량을 입력해주세요.');
-      return;
-    }
-
-    try {
-      await addDoc(collection(db, "sensors"), {name, company, qty, place});
-      $('#newName').value = '';
-      $('#newQty').value = '1';
-      await loadSensors();
-      alert('기기가 성공적으로 등록되었습니다!');
-    } catch (error) {
-      console.error("기기 등록 실패:", error);
-      alert("기기 등록 중 오류가 발생했습니다.");
-    }
-  });
-
-  $('#closeModalBtn').addEventListener('click', () => {
-    $('#editModal').close();
-  });
-
-  $('#saveEditBtn').addEventListener('click', async () => {
-    const newQty = parseInt($('#editQtyInput').value);
-    const newPlace = $('#editPlaceSelect').value;
-
-    if(isNaN(newQty) || newQty < 0){
-      alert('올바른 수량을 입력해주세요.');
-      return;
-    }
-    try {
-      if(!currentEditDocId.toString().startsWith('local_')) {
-        const sensorRef = doc(db, "sensors", currentEditDocId);
-        await updateDoc(sensorRef, { qty: newQty, place: newPlace });
-      }
-      $('#editModal').close();
-      await loadSensors();
-      alert('수량과 보관 위치가 수정되었습니다!');
-    } catch (error) {
-      console.error("정보 수정 실패:", error);
-      alert("정보 수정 중 오류가 발생했습니다.");
-    }
-  });
-
-  $('#search').addEventListener('input', renderTable);
-  $('#placeFilter').addEventListener('change', renderTable);
-
-  loadSensors();
-</script>
-</body>
-</html>
+    {name: "에어 (대기질 측정)", company: "포켓랩", qty: 2, place: "
