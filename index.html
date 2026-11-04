@@ -80,7 +80,7 @@
   .dhead{padding:20px 24px;border-bottom:1px solid var(--line);background:#fff}
   .dbody{padding:24px;background:#fff}
   .dbody label{display:block;font-weight:700;font-size:14px;margin-bottom:8px;color:#047857}
-  .dbody input{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;font:inherit;margin-bottom:16px}
+  .dbody input, .dbody select{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;font:inherit;margin-bottom:16px}
   .dfoot{padding:12px 24px;background:#f8fafc;display:flex;justify-content:flex-end;gap:8px}
 
   footer{text-align:center;color:var(--sub);font-size:13px;padding:30px 20px 50px}
@@ -120,6 +120,7 @@
         <option value="">보관장소 전체</option>
         <option>생물실</option>
         <option>물리지학실</option>
+        <option>화학실</option>
         <option>준비실</option>
       </select>
     </div>
@@ -164,6 +165,7 @@
         <select id="newPlace">
           <option value="생물실">생물실</option>
           <option value="물리지학실">물리지학실</option>
+          <option value="화학실">화학실</option>
           <option value="준비실">준비실</option>
         </select>
       </div>
@@ -172,18 +174,28 @@
   </section>
 </main>
 
-<!-- 수량 수정 모달 -->
+<!-- 수량 및 보관 위치 수정 모달 -->
 <dialog id="editModal">
   <div class="dhead">
-    <h3 style="margin:0;color:#047857">수량 변경</h3>
+    <h3 style="margin:0;color:#047857">센서 정보 수정</h3>
   </div>
   <div class="dbody">
-    <label id="editSensorName">센서 이름</label>
+    <label id="editSensorName" style="margin-bottom:12px;display:block;font-size:15px;color:var(--ink)"></label>
+    
+    <label for="editQtyInput">수량 변경</label>
     <input type="number" id="editQtyInput" min="0">
+
+    <label for="editPlaceSelect">보관 위치 변경</label>
+    <select id="editPlaceSelect">
+      <option value="생물실">생물실</option>
+      <option value="물리지학실">물리지학실</option>
+      <option value="화학실">화학실</option>
+      <option value="준비실">준비실</option>
+    </select>
   </div>
   <div class="dfoot">
     <button class="btn ghost" onclick="document.getElementById('editModal').close()">취소</button>
-    <button class="btn" onclick="saveEditedQty()">저장하기</button>
+    <button class="btn" onclick="saveEditedSensor()">저장하기</button>
   </div>
 </dialog>
 
@@ -196,7 +208,6 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
   import { getFirestore, collection, getDocs, addDoc, updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-  // 선생님의 파이어베이스 설정값 적용
   const firebaseConfig = {
     apiKey: "AIzaSyDS_JlZsCakqQfMuONN7KLzk2SseG06t6c",
     authDomain: "science-sensor-app.firebaseapp.com",
@@ -214,7 +225,6 @@
   let selectedCompanyFilter = ""; 
   const $ = s => document.querySelector(s);
 
-  // Firestore에서 데이터 불러오기
   async function loadSensors() {
     try {
       const querySnapshot = await getDocs(collection(db, "sensors"));
@@ -222,7 +232,6 @@
       querySnapshot.forEach((docSnap) => {
         sensors.push({ id: docSnap.id, ...docSnap.data() });
       });
-      // 데이터가 아예 없을 경우 기본 초기 데이터 한 번 세팅
       if(sensors.length === 0) {
         const initialData = [
           {name: "무선 온도 센서", company: "PASCO", qty: 14, place: "생물실"},
@@ -282,7 +291,7 @@
           <td>
             <div class="qty-box">
               <span>${s.qty}대</span>
-              <button class="edit-btn" title="수량 변경" onclick="window.openEditModal('${s.id}')">✏️</button>
+              <button class="edit-btn" title="수량 및 위치 변경" onclick="window.openEditModal('${s.id}')">✏️</button>
             </div>
           </td>
           <td>📍 ${s.place}</td>
@@ -294,7 +303,6 @@
     $('#statTotal').textContent = sensors.reduce((acc, cur) => acc + Number(cur.qty), 0) + '대';
   }
 
-  // 회사별 토글 버튼 이벤트 리스너 설정
   document.querySelectorAll('.toggle-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       document.querySelectorAll('.toggle-btn').forEach(b => {
@@ -346,32 +354,34 @@
     currentEditDocId = id;
     const s = sensors.find(item => item.id === id);
     if(!s) return;
-    $('#editSensorName').textContent = `${s.name} (${s.company}, 보관: ${s.place})`;
+    $('#editSensorName').textContent = `📌 ${s.name} (${s.company})`;
     $('#editQtyInput').value = s.qty;
+    $('#editPlaceSelect').value = s.place;
     $('#editModal').showModal();
   }
 
-  window.saveEditedQty = async function(){
+  window.saveEditedSensor = async function(){
     const newQty = parseInt($('#editQtyInput').value);
+    const newPlace = $('#editPlaceSelect').value;
+
     if(isNaN(newQty) || newQty < 0){
       alert('올바른 수량을 입력해주세요.');
       return;
     }
     try {
       const sensorRef = doc(db, "sensors", currentEditDocId);
-      await updateDoc(sensorRef, { qty: newQty });
-      $('#editModal').close();
+      await updateDoc(sensorRef, { qty: newQty, place: newPlace });
+      $('#editModal'].close();
       await loadSensors();
     } catch (error) {
-      console.error("수량 수정 실패:", error);
-      alert("수량 수정 중 오류가 발생했습니다.");
+      console.error("정보 수정 실패:", error);
+      alert("정보 수정 중 오류가 발생했습니다.");
     }
   }
 
   $('#search').addEventListener('input', renderTable);
   $('#placeFilter').addEventListener('change', renderTable);
 
-  // 최초 데이터 로드 실행
   loadSensors();
 </script>
 </body>
